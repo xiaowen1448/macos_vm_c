@@ -28,6 +28,8 @@ namespace VMCloneApp.Forms
         private TextBox txtAppleIdConfigDirectory;  // AppleID配置目录文本框引用
         private Label lblWumaAvailableCount;  // 五码可用数量标签
         private Label lblAppleIdAvailableCount;  // AppleID可用数量标签
+        private TabControl tabControl;  // 选项卡控件引用
+        private TextBox txtNumberTemplateDirectory;  // 号码模板目录文本框引用
         private ExcelStyleForm mainForm;  // 主窗体引用
 
         public PreferencesForm(ExcelStyleForm parentForm)
@@ -89,7 +91,7 @@ namespace VMCloneApp.Forms
         private void InitializeControls()
         {
             // 创建选项卡控件
-            var tabControl = new TabControl()
+            tabControl = new TabControl()
             {
                 Location = new Point(10, 10),
                 Size = new Size(530, 430),
@@ -209,8 +211,19 @@ namespace VMCloneApp.Forms
                 Size = new Size(150, 25),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
-            cmbWumaConfig.Items.AddRange(new object[] { "14.1", "18.1" });
-            cmbWumaConfig.SelectedIndex = 0;
+            
+            // 五码配置选择事件
+            cmbWumaConfig.SelectedIndexChanged += (s, e) => UpdateWumaConfigLineCount();
+
+            // 五码配置可用数量说明
+            var lblWumaConfigAvailableCount = new Label()
+            {
+                Text = "可用数量: 0",
+                Location = new Point(270, 112),
+                Size = new Size(100, 20),
+                Font = new Font("微软雅黑", 8),
+                ForeColor = Color.Gray
+            };
 
             // VM命名模式
             var lblNamingPattern = new Label()
@@ -300,8 +313,8 @@ namespace VMCloneApp.Forms
             tabPage.Controls.AddRange(new Control[] {
                 lblMotherDisk, cmbMotherDisk,
                 lblCloneCount, cmbCloneCount,
-                lblWumaConfig, cmbWumaConfig,
-                lblNamingPattern, txtNamingPattern, lblNamingHelp,
+                lblWumaConfig, cmbWumaConfig, lblWumaConfigAvailableCount,
+                lblNamingPattern, txtNamingPattern,
                 lblMotherDiskDirectory, txtMotherDiskDirectory, btnSelectMotherDiskDir,
                 lblCloneVMDirectory, txtCloneVMDirectory, btnSelectCloneVMDir
             });
@@ -404,6 +417,19 @@ namespace VMCloneApp.Forms
             
             // 动态加载默认五码配置
             LoadDefaultWumaConfigs();
+            
+            // 默认配置选择事件
+            cmbDefaultWuma.SelectedIndexChanged += (s, e) => UpdateDefaultWumaLineCount();
+
+            // 默认配置可用数量说明
+            var lblDefaultWumaAvailableCount = new Label()
+            {
+                Text = "可用数量: 0",
+                Location = new Point(270, 162),
+                Size = new Size(100, 20),
+                Font = new Font("微软雅黑", 8),
+                ForeColor = Color.Gray
+            };
 
             // 配置说明区域
             var lblConfigInfo = new Label()
@@ -419,7 +445,7 @@ namespace VMCloneApp.Forms
                 lblWumaFile, cmbWumaFile, lblWumaAvailableCount,
                 btnImportWuma,
                 lblWumaConfigDirectory, txtWumaConfigDirectory, btnSelectWumaConfigDir,
-                lblDefaultWuma, cmbDefaultWuma,
+                lblDefaultWuma, cmbDefaultWuma, lblDefaultWumaAvailableCount,
                 lblConfigInfo
             });
         }
@@ -440,7 +466,7 @@ namespace VMCloneApp.Forms
             cmbAppleIdFile = new ComboBox()
             {
                 Location = new Point(110, 30),
-                Size = new Size(200, 25),
+                Size = new Size(250, 25),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
             
@@ -454,7 +480,7 @@ namespace VMCloneApp.Forms
             lblAppleIdAvailableCount = new Label()
             {
                 Text = "可用AppleID数量: 0",
-                Location = new Point(320, 32),
+                Location = new Point(370, 32),
                 Size = new Size(180, 20),
                 Font = new Font("微软雅黑", 8),
                 ForeColor = Color.Gray
@@ -521,6 +547,19 @@ namespace VMCloneApp.Forms
             
             // 动态加载默认AppleID配置
             LoadDefaultAppleIdConfigs();
+            
+            // 默认配置选择事件
+            cmbDefaultAppleId.SelectedIndexChanged += (s, e) => UpdateDefaultAppleIdLineCount();
+
+            // 默认配置可用数量说明
+            var lblDefaultAppleIdAvailableCount = new Label()
+            {
+                Text = "可用AppleID数量: 0",
+                Location = new Point(270, 162),
+                Size = new Size(150, 20),
+                Font = new Font("微软雅黑", 8),
+                ForeColor = Color.Gray
+            };
 
             // 配置说明区域
             var lblConfigInfo = new Label()
@@ -536,7 +575,7 @@ namespace VMCloneApp.Forms
                 lblAppleIdFile, cmbAppleIdFile, lblAppleIdAvailableCount,
                 btnImportAppleId,
                 lblAppleIdConfigDirectory, txtAppleIdConfigDirectory, btnSelectAppleIdConfigDir,
-                lblDefaultAppleId, cmbDefaultAppleId,
+                lblDefaultAppleId, cmbDefaultAppleId, lblDefaultAppleIdAvailableCount,
                 lblConfigInfo
             });
         }
@@ -697,50 +736,85 @@ namespace VMCloneApp.Forms
             cmbNumberTemplateFile = new ComboBox()
             {
                 Location = new Point(110, 130),
-                Size = new Size(150, 25),
+                Size = new Size(250, 25),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
-            cmbNumberTemplateFile.Items.AddRange(new object[] { "numbers.txt", "phone_numbers.csv", "contacts.json" });
-            cmbNumberTemplateFile.SelectedIndex = 0;
+            
+            // 动态加载号码模板文件
+            LoadNumberTemplateFiles();
+            
+            // 号码模板文件选择事件
+            cmbNumberTemplateFile.SelectedIndexChanged += (s, e) => UpdateNumberTemplateLineCount();
 
             // 号码数量显示
             lblNumberCount = new Label()
             {
                 Text = "号码数量: 0",
-                Location = new Point(270, 130),
+                Location = new Point(370, 130),
                 Size = new Size(100, 20),
                 Font = new Font("微软雅黑", 9),
                 ForeColor = Color.Gray
             };
 
+            // 号码模板目录配置
+            var lblNumberTemplateDirectory = new Label()
+            {
+                Text = "模板目录:",
+                Location = new Point(20, 170),
+                Size = new Size(80, 20),
+                Font = new Font("微软雅黑", 9)
+            };
+
+            txtNumberTemplateDirectory = new TextBox()
+            {
+                Location = new Point(110, 170),
+                Size = new Size(250, 25),
+                Font = new Font("微软雅黑", 9)
+            };
+            txtNumberTemplateDirectory.Text = "C:\\NumberTemplates";
+
+            var btnSelectNumberTemplateDir = new Button()
+            {
+                Text = "选择",
+                Location = new Point(370, 170),
+                Size = new Size(50, 25),
+                FlatStyle = FlatStyle.Standard,
+                UseVisualStyleBackColor = true,
+                Font = new Font("微软雅黑", 8)
+            };
+            btnSelectNumberTemplateDir.Click += BtnSelectNumberTemplateDir_Click;
+
+            // 号码模板目录变更时自动刷新文件列表
+            txtNumberTemplateDirectory.TextChanged += (s, e) => LoadNumberTemplateFiles();
+
             // 配置说明区域
             var lblConfigInfo = new Label()
             {
                 Text = "发信管理配置包含邮件模板选择、发送间隔设置和号码模板管理",
-                Location = new Point(20, 180),
+                Location = new Point(20, 210),
                 Size = new Size(400, 40),
                 Font = new Font("微软雅黑", 9),
                 ForeColor = Color.DarkBlue
             };
 
-            // 模板管理按钮
-            var btnManageTemplates = new Button()
+            // 导入模板按钮
+            var btnImportTemplates = new Button()
             {
-                Text = "管理模板",
+                Text = "导入模板",
                 Location = new Point(280, 30),
                 Size = new Size(100, 30),
                 FlatStyle = FlatStyle.Standard,
                 UseVisualStyleBackColor = true,
                 Font = new Font("微软雅黑", 9)
             };
-            btnManageTemplates.Click += BtnManageTemplates_Click;
+            btnImportTemplates.Click += BtnImportTemplates_Click;
 
             tabPage.Controls.AddRange(new Control[] {
-                lblEmailTemplate, cmbEmailTemplate,
+                lblEmailTemplate, cmbEmailTemplate, btnImportTemplates,
                 lblEmailInterval, cmbEmailInterval,
                 lblNumberTemplateFile, cmbNumberTemplateFile, lblNumberCount,
-                lblConfigInfo,
-                btnManageTemplates
+                lblNumberTemplateDirectory, txtNumberTemplateDirectory, btnSelectNumberTemplateDir,
+                lblConfigInfo
             });
         }
 
@@ -1157,7 +1231,7 @@ namespace VMCloneApp.Forms
                     lblWumaAvailableCount.Text = "可用数量: 0";
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 lblWumaAvailableCount.Text = "可用数量: 0";
             }
@@ -1187,9 +1261,275 @@ namespace VMCloneApp.Forms
                     lblAppleIdAvailableCount.Text = "可用AppleID数量: 0";
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 lblAppleIdAvailableCount.Text = "可用AppleID数量: 0";
+            }
+        }
+
+        private void LoadWumaConfigsForCloneTab()
+        {
+            try
+            {
+                cmbWumaConfig.Items.Clear();
+                
+                // 从五码配置目录获取配置文件
+                string wumaConfigDirectory = txtWumaConfigDirectory?.Text ?? "C:\\WumaConfigs";
+                
+                if (!string.IsNullOrEmpty(wumaConfigDirectory) && Directory.Exists(wumaConfigDirectory))
+                {
+                    // 获取所有.txt文件
+                    var wumaFiles = Directory.GetFiles(wumaConfigDirectory, "*.txt")
+                        .Select(file => Path.GetFileNameWithoutExtension(file))
+                        .ToList();
+                    
+                    if (wumaFiles.Any())
+                    {
+                        cmbWumaConfig.Items.AddRange(wumaFiles.ToArray());
+                        cmbWumaConfig.SelectedIndex = 0;
+                    }
+                    else
+                    {
+                        cmbWumaConfig.Items.Add("未找到五码配置文件");
+                        cmbWumaConfig.SelectedIndex = 0;
+                    }
+                }
+                else
+                {
+                    cmbWumaConfig.Items.Add("五码配置目录不存在或无效");
+                    cmbWumaConfig.SelectedIndex = 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                cmbWumaConfig.Items.Clear();
+                cmbWumaConfig.Items.Add($"加载五码配置失败: {ex.Message}");
+                cmbWumaConfig.SelectedIndex = 0;
+            }
+        }
+
+        private void UpdateWumaConfigLineCount()
+        {
+            try
+            {
+                // 查找克隆配置选项卡中的可用数量标签
+                var lblWumaConfigAvailableCount = tabControl.TabPages[0].Controls
+                    .OfType<Label>()
+                    .FirstOrDefault(lbl => lbl.Text.StartsWith("可用数量:"));
+                
+                if (lblWumaConfigAvailableCount == null)
+                {
+                    return;
+                }
+                
+                if (cmbWumaConfig.SelectedItem == null || cmbWumaConfig.SelectedItem.ToString().Contains("未找到") || cmbWumaConfig.SelectedItem.ToString().Contains("失败"))
+                {
+                    lblWumaConfigAvailableCount.Text = "可用数量: 0";
+                    return;
+                }
+                
+                string wumaConfigDirectory = txtWumaConfigDirectory?.Text ?? "C:\\WumaConfigs";
+                string fileName = cmbWumaConfig.SelectedItem.ToString() + ".txt";
+                string filePath = Path.Combine(wumaConfigDirectory, fileName);
+                
+                if (File.Exists(filePath))
+                {
+                    int lineCount = File.ReadAllLines(filePath).Length;
+                    lblWumaConfigAvailableCount.Text = $"可用数量: {lineCount}";
+                }
+                else
+                {
+                    lblWumaConfigAvailableCount.Text = "可用数量: 0";
+                }
+            }
+            catch (Exception)
+            {
+                // 错误处理
+            }
+        }
+
+        private void UpdateDefaultWumaLineCount()
+        {
+            try
+            {
+                // 查找五码配置选项卡中的默认配置可用数量标签
+                var lblDefaultWumaAvailableCount = tabControl.TabPages[1].Controls
+                    .OfType<Label>()
+                    .FirstOrDefault(lbl => lbl.Location.Y == 162 && lbl.Text.StartsWith("可用数量:"));
+                
+                if (lblDefaultWumaAvailableCount == null)
+                {
+                    return;
+                }
+                
+                if (cmbDefaultWuma.SelectedItem == null || cmbDefaultWuma.SelectedItem.ToString().Contains("未找到") || cmbDefaultWuma.SelectedItem.ToString().Contains("失败") || cmbDefaultWuma.SelectedItem.ToString().Contains("请先"))
+                {
+                    lblDefaultWumaAvailableCount.Text = "可用数量: 0";
+                    return;
+                }
+                
+                string wumaConfigDirectory = txtWumaConfigDirectory?.Text ?? "C:\\WumaConfigs";
+                string fileName = cmbDefaultWuma.SelectedItem.ToString() + ".txt";
+                string filePath = Path.Combine(wumaConfigDirectory, fileName);
+                
+                if (File.Exists(filePath))
+                {
+                    int lineCount = File.ReadAllLines(filePath).Length;
+                    lblDefaultWumaAvailableCount.Text = $"可用数量: {lineCount}";
+                }
+                else
+                {
+                    lblDefaultWumaAvailableCount.Text = "可用数量: 0";
+                }
+            }
+            catch (Exception)
+            {
+                // 错误处理
+            }
+        }
+
+        private void UpdateDefaultAppleIdLineCount()
+        {
+            try
+            {
+                // 查找AppleID配置选项卡中的默认配置可用数量标签
+                var lblDefaultAppleIdAvailableCount = tabControl.TabPages[2].Controls
+                    .OfType<Label>()
+                    .FirstOrDefault(lbl => lbl.Location.Y == 162 && lbl.Text.StartsWith("可用AppleID数量:"));
+                
+                if (lblDefaultAppleIdAvailableCount == null)
+                {
+                    return;
+                }
+                
+                if (cmbDefaultAppleId.SelectedItem == null || cmbDefaultAppleId.SelectedItem.ToString().Contains("未找到") || cmbDefaultAppleId.SelectedItem.ToString().Contains("失败") || cmbDefaultAppleId.SelectedItem.ToString().Contains("请先"))
+                {
+                    lblDefaultAppleIdAvailableCount.Text = "可用AppleID数量: 0";
+                    return;
+                }
+                
+                string appleIdConfigDirectory = txtAppleIdConfigDirectory?.Text ?? "C:\\AppleIdConfigs";
+                string fileName = cmbDefaultAppleId.SelectedItem.ToString() + ".txt";
+                string filePath = Path.Combine(appleIdConfigDirectory, fileName);
+                
+                if (File.Exists(filePath))
+                {
+                    int lineCount = File.ReadAllLines(filePath).Length;
+                    lblDefaultAppleIdAvailableCount.Text = $"可用AppleID数量: {lineCount}";
+                }
+                else
+                {
+                    lblDefaultAppleIdAvailableCount.Text = "可用AppleID数量: 0";
+                }
+            }
+            catch (Exception)
+            {
+                // 错误处理
+            }
+        }
+
+        private void LoadNumberTemplateFiles()
+        {
+            try
+            {
+                cmbNumberTemplateFile.Items.Clear();
+                
+                // 从号码模板目录获取配置文件
+                string numberTemplateDirectory = txtNumberTemplateDirectory?.Text ?? "C:\\NumberTemplates";
+                
+                if (!string.IsNullOrEmpty(numberTemplateDirectory) && Directory.Exists(numberTemplateDirectory))
+                {
+                    // 获取所有.txt文件
+                    var numberFiles = Directory.GetFiles(numberTemplateDirectory, "*.txt")
+                        .Select(file => Path.GetFileName(file))
+                        .ToList();
+                    
+                    if (numberFiles.Any())
+                    {
+                        cmbNumberTemplateFile.Items.AddRange(numberFiles.ToArray());
+                        cmbNumberTemplateFile.SelectedIndex = 0;
+                    }
+                    else
+                    {
+                        cmbNumberTemplateFile.Items.Add("未找到号码模板文件");
+                        cmbNumberTemplateFile.SelectedIndex = 0;
+                    }
+                }
+                else
+                {
+                    cmbNumberTemplateFile.Items.Add("号码模板目录不存在或无效");
+                    cmbNumberTemplateFile.SelectedIndex = 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                cmbNumberTemplateFile.Items.Clear();
+                cmbNumberTemplateFile.Items.Add($"加载号码模板失败: {ex.Message}");
+                cmbNumberTemplateFile.SelectedIndex = 0;
+            }
+        }
+
+        private void UpdateNumberTemplateLineCount()
+        {
+            try
+            {
+                if (cmbNumberTemplateFile.SelectedItem == null || cmbNumberTemplateFile.SelectedItem.ToString().Contains("未找到") || cmbNumberTemplateFile.SelectedItem.ToString().Contains("失败"))
+                {
+                    lblNumberCount.Text = "号码数量: 0";
+                    return;
+                }
+                
+                string numberTemplateDirectory = txtNumberTemplateDirectory?.Text ?? "C:\\NumberTemplates";
+                string fileName = cmbNumberTemplateFile.SelectedItem.ToString();
+                string filePath = Path.Combine(numberTemplateDirectory, fileName);
+                
+                if (File.Exists(filePath))
+                {
+                    int lineCount = File.ReadAllLines(filePath).Length;
+                    lblNumberCount.Text = $"号码数量: {lineCount}";
+                }
+                else
+                {
+                    lblNumberCount.Text = "号码数量: 0";
+                }
+            }
+            catch (Exception)
+            {
+                lblNumberCount.Text = "号码数量: 0";
+            }
+        }
+
+        private void BtnSelectNumberTemplateDir_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                using (var folderDialog = new FolderBrowserDialog())
+                {
+                    folderDialog.Description = "选择号码模板目录";
+                    folderDialog.SelectedPath = "C:\\NumberTemplates";
+                    
+                    if (folderDialog.ShowDialog() == DialogResult.OK)
+                    {
+                        // 简化处理：直接显示选择的目录并重新加载配置
+                        MessageBox.Show($"已选择号码模板目录: {folderDialog.SelectedPath}\n请手动更新目录路径并重新加载配置。", "目录选择", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"选择目录失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void BtnImportTemplates_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                MessageBox.Show("导入模板功能正在开发中...", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"导入模板失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -1328,6 +1668,9 @@ namespace VMCloneApp.Forms
                 cmbDefaultWuma.SelectedItem = config.DefaultWuma;
                 txtWumaConfigDirectory.Text = config.WumaConfigDirectory;
                 
+                // 刷新克隆配置选项卡的五码配置下拉框
+                LoadWumaConfigsForCloneTab();
+                
                 // AppleID配置
                 cmbAppleIdFile.SelectedItem = config.AppleIdFile;
                 cmbDefaultAppleId.SelectedItem = config.DefaultAppleId;
@@ -1341,6 +1684,12 @@ namespace VMCloneApp.Forms
                 cmbEmailInterval.SelectedItem = config.EmailInterval.ToString();
                 cmbNumberTemplateFile.SelectedItem = config.NumberTemplateFile;
                 lblNumberCount.Text = $"号码数量: {config.NumberCount}";
+                
+                // 设置号码模板目录
+                if (txtNumberTemplateDirectory != null)
+                {
+                    txtNumberTemplateDirectory.Text = config.NumberTemplateDirectory;
+                }
                 
                 // 虚拟机软件配置
                 txtVMDirectory.Text = config.VMDirectory;
@@ -1381,6 +1730,7 @@ namespace VMCloneApp.Forms
                 EmailInterval = int.TryParse(cmbEmailInterval.SelectedItem?.ToString(), out int interval) ? interval : 3,
                 NumberTemplateFile = cmbNumberTemplateFile.SelectedItem?.ToString() ?? "numbers.txt",
                 NumberCount = int.TryParse(lblNumberCount.Text.Replace("号码数量: ", ""), out int count) ? count : 0,
+                NumberTemplateDirectory = txtNumberTemplateDirectory?.Text ?? "C:\\NumberTemplates",
                 
                 // 虚拟机软件配置
                 VMDirectory = txtVMDirectory.Text
@@ -1399,7 +1749,6 @@ namespace VMCloneApp.Forms
                 string logMessage = $"[{DateTime.Now:HH:mm:ss}] 偏好设置已保存到XML文件: {configPath}";
                 AddResultToMainForm(logMessage);
                 
-                MessageBox.Show($"偏好设置已保存到XML文件！\n\n保存路径:\n{configPath}", "保存成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 this.DialogResult = DialogResult.OK;
                 this.Close();
             }

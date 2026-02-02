@@ -34,6 +34,7 @@ namespace VMCloneApp.Utils
         public int EmailInterval { get; set; } = 3;
         public string NumberTemplateFile { get; set; } = "numbers.txt";
         public int NumberCount { get; set; } = 0;
+        public string NumberTemplateDirectory { get; set; } = "C:\\NumberTemplates";
 
         // 虚拟机软件配置
         public string VMDirectory { get; set; } = "C:\\Program Files (x86)\\VMware\\VMware Workstation";
