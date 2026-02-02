@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AppConfig xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <!-- 克隆配置 -->
+  <MotherDisk>macOS-14.1</MotherDisk>
+  <CloneCount>5</CloneCount>
+  <WumaConfig>macOS-14.1</WumaConfig>
+  <NamingPattern>macos{版本}_timestamp_snapshot_index</NamingPattern>
+  <MotherDiskDirectory>C:\VM\MotherDisks</MotherDiskDirectory>
+  <CloneVMDirectory>C:\VM\Clones</CloneVMDirectory>
+  
+  <!-- 五码配置 -->
+  <WumaFile>macOS-14.1.wuma</WumaFile>
+  <DefaultWuma>macOS-14.1</DefaultWuma>
+  
+  <!-- AppleID配置 -->
+  <AppleIdFile>appleid-2026.json</AppleIdFile>
+  <DefaultAppleId>default@apple.com</DefaultAppleId>
+  
+  <!-- 客户端管理 -->
+  <ApiUrl>http://localhost:8080/api/v1</ApiUrl>
+  
+  <!-- 发信管理 -->
+  <EmailTemplate>macOS克隆完成通知</EmailTemplate>
+  <EmailInterval>3</EmailInterval>
+  <NumberTemplateFile>numbers.txt</NumberTemplateFile>
+  <NumberCount>0</NumberCount>
+  
+  <!-- 虚拟机软件配置 -->
+  <VMDirectory>C:\Program Files (x86)\VMware\VMware Workstation</VMDirectory>
+  
+  <!-- 系统配置 -->
+  <AutoStartVM>true</AutoStartVM>
+  <EnableLogging>true</EnableLogging>
+  <MaxConcurrentClones>3</MaxConcurrentClones>
+  <LogLevel>INFO</LogLevel>
+  
+  <!-- 虚拟机配置 -->
+  <AutoDestroyFailedVM>true</AutoDestroyFailedVM>
+  <MaxLoginAttempts>3</MaxLoginAttempts>
+  <VMProxyMode>自动分配</VMProxyMode>
+  <EnableSnapshotCleanup>true</EnableSnapshotCleanup>
+  <CheckLoginFailure>true</CheckLoginFailure>
+  <CheckStartupFailure>true</CheckStartupFailure>
+  <CheckProxyFailure>true</CheckProxyFailure>
+  <CheckIPFailure>true</CheckIPFailure>
+  <CheckWumaFailure>true</CheckWumaFailure>
+</AppConfig>
