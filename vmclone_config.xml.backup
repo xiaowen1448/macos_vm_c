@@ -2,8 +2,8 @@
 <AppConfig xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <MotherDisk>macos10.12</MotherDisk>
   <CloneCount>4</CloneCount>
-  <WumaConfig>18.1五码</WumaConfig>
-  <PlistConfig>temp.plist</PlistConfig>
+  <WumaConfig>14.1五码</WumaConfig>
+  <PlistConfig>opencore.plist</PlistConfig>
   <NamingPattern>macos{版本}_timestamp_snapshot_index</NamingPattern>
   <MotherDiskDirectory>D:\xiaowen_1448\macos_vm_c#\TemplateVM</MotherDiskDirectory>
   <CloneVMDirectory>D:\xiaowen_1448\macos_vm_c#\NewVM</CloneVMDirectory>

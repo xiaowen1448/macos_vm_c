@@ -12,9 +12,11 @@ namespace VMCloneApp.Utils
         public string MotherDisk { get; set; } = "macOS-14.1";
         public int CloneCount { get; set; } = 5;
         public string WumaConfig { get; set; } = "macOS-14.1";
+        public string PlistConfig { get; set; } = "default.plist";
         public string NamingPattern { get; set; } = "macos{版本}_timestamp_snapshot_index";
         public string MotherDiskDirectory { get; set; } = "C:\\VM\\MotherDisks";
         public string CloneVMDirectory { get; set; } = "C:\\VM\\Clones";
+        public string PlistConfigDirectory { get; set; } = "D:\\xiaowen_1448\\macos_vm_c#\\config\\plist";
 
         // 五码配置
         public string WumaFile { get; set; } = "macOS-14.1.wuma";
@@ -63,9 +65,8 @@ namespace VMCloneApp.Utils
         
         public static string GetConfigFilePath()
         {
-            // 始终将配置文件保存在应用程序所在目录
-            var basePath = AppDomain.CurrentDomain.BaseDirectory;
-            return Path.Combine(basePath, ConfigFileName);
+            // 使用ConfigIniManager获取配置文件路径
+            return ConfigIniManager.GetConfigFilePath();
         }
 
         public static AppConfig LoadConfig()
@@ -108,9 +109,11 @@ namespace VMCloneApp.Utils
             if (string.IsNullOrEmpty(config.MotherDisk)) config.MotherDisk = "macOS-14.1";
             if (config.CloneCount <= 0) config.CloneCount = 5;
             if (string.IsNullOrEmpty(config.WumaConfig)) config.WumaConfig = "macOS-14.1";
+            if (string.IsNullOrEmpty(config.PlistConfig)) config.PlistConfig = "default.plist";
             if (string.IsNullOrEmpty(config.NamingPattern)) config.NamingPattern = "macos{版本}_timestamp_snapshot_index";
             if (string.IsNullOrEmpty(config.MotherDiskDirectory)) config.MotherDiskDirectory = "C:\\VM\\MotherDisks";
             if (string.IsNullOrEmpty(config.CloneVMDirectory)) config.CloneVMDirectory = "C:\\VM\\Clones";
+            if (string.IsNullOrEmpty(config.PlistConfigDirectory)) config.PlistConfigDirectory = "D:\\xiaowen_1448\\macos_vm_c#\\config\\plist";
             if (string.IsNullOrEmpty(config.WumaFile)) config.WumaFile = "macOS-14.1.wuma";
             if (string.IsNullOrEmpty(config.DefaultWuma)) config.DefaultWuma = "macOS-14.1";
             if (string.IsNullOrEmpty(config.AppleIdFile)) config.AppleIdFile = "appleid-2026.json";
@@ -120,6 +123,7 @@ namespace VMCloneApp.Utils
             if (config.EmailInterval <= 0) config.EmailInterval = 3;
             if (string.IsNullOrEmpty(config.NumberTemplateFile)) config.NumberTemplateFile = "numbers.txt";
             if (config.NumberCount < 0) config.NumberCount = 0;
+            if (string.IsNullOrEmpty(config.NumberTemplateDirectory)) config.NumberTemplateDirectory = "C:\\NumberTemplates";
             if (string.IsNullOrEmpty(config.VMDirectory)) config.VMDirectory = "C:\\Program Files (x86)\\VMware\\VMware Workstation";
             if (config.MaxConcurrentClones <= 0) config.MaxConcurrentClones = 3;
             if (string.IsNullOrEmpty(config.LogLevel)) config.LogLevel = "INFO";
@@ -178,7 +182,7 @@ namespace VMCloneApp.Utils
             if (File.Exists(configPath))
             {
                 var fileInfo = new FileInfo(configPath);
-                return $"配置文件路径: {configPath}";
+                return $"{configPath}";
             }
             else
             {

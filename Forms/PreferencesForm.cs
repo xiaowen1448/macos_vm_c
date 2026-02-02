@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using System.Xml.Serialization;
 using VMCloneApp.Utils;
 
 namespace VMCloneApp.Forms
@@ -30,6 +31,8 @@ namespace VMCloneApp.Forms
         private Label lblAppleIdAvailableCount;  // AppleID可用数量标签
         private TabControl tabControl;  // 选项卡控件引用
         private TextBox txtNumberTemplateDirectory;  // 号码模板目录文本框引用
+        private ComboBox cmbPlistConfig;  // Plist配置下拉框引用
+        private TextBox txtPlistConfigDirectory;  // Plist配置目录文本框引用
         private ExcelStyleForm mainForm;  // 主窗体引用
 
         public PreferencesForm(ExcelStyleForm parentForm)
@@ -190,11 +193,11 @@ namespace VMCloneApp.Forms
                 Size = new Size(100, 25),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
+            // 初始化时不设置默认选择，由LoadConfig方法根据配置文件设置
             for (int i = 1; i <= 10; i++)
             {
                 cmbCloneCount.Items.Add(i.ToString());
             }
-            cmbCloneCount.SelectedIndex = 0;
 
             // 五码配置文件
             var lblWumaConfig = new Label()
@@ -225,11 +228,40 @@ namespace VMCloneApp.Forms
                 ForeColor = Color.Gray
             };
 
+            // Plist配置文件
+            var lblPlistConfig = new Label()
+            {
+                Text = "Plist配置:",
+                Location = new Point(20, 150),
+                Size = new Size(80, 20),
+                Font = new Font("微软雅黑", 9)
+            };
+
+            cmbPlistConfig = new ComboBox()
+            {
+                Location = new Point(110, 150),
+                Size = new Size(150, 25),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            
+            // 动态加载plist配置文件
+            LoadPlistConfigs();
+            
+            // Plist配置可用数量说明
+            var lblPlistConfigAvailableCount = new Label()
+            {
+                Text = "可用数量: 0",
+                Location = new Point(270, 152),
+                Size = new Size(100, 20),
+                Font = new Font("微软雅黑", 8),
+                ForeColor = Color.Gray
+            };
+
             // VM命名模式
             var lblNamingPattern = new Label()
             {
                 Text = "命名模式:",
-                Location = new Point(20, 150),
+                Location = new Point(20, 190),
                 Size = new Size(80, 20),
                 Font = new Font("微软雅黑", 9)
             };
@@ -237,7 +269,7 @@ namespace VMCloneApp.Forms
             txtNamingPattern = new TextBox()
             {
                 Text = "macos{版本}_timestamp_snapshot_index",
-                Location = new Point(110, 150),
+                Location = new Point(110, 190),
                 Size = new Size(300, 25),
                 ReadOnly = true,
                 BackColor = Color.FromArgb(240, 240, 240)
@@ -247,24 +279,54 @@ namespace VMCloneApp.Forms
             var lblNamingHelp = new Label()
             {
                 Text = "变量说明: {版本} - 系统版本, timestamp - 时间戳, snapshot - 快照编号, index - 序号",
-                Location = new Point(110, 180),
+                Location = new Point(110, 220),
                 Size = new Size(350, 40),
                 Font = new Font("微软雅黑", 8),
                 ForeColor = Color.Gray
             };
 
+            // Plist配置目录
+            var lblPlistConfigDirectory = new Label()
+            {
+                Text = "Plist目录:",
+                Location = new Point(20, 270),
+                Size = new Size(80, 20),
+                Font = new Font("微软雅黑", 9)
+            };
+
+            txtPlistConfigDirectory = new TextBox()
+            {
+                Location = new Point(110, 270),
+                Size = new Size(250, 25),
+                Font = new Font("微软雅黑", 9)
+            };
+
+            var btnSelectPlistConfigDir = new Button()
+            {
+                Text = "选择",
+                Location = new Point(370, 270),
+                Size = new Size(50, 25),
+                FlatStyle = FlatStyle.Standard,
+                UseVisualStyleBackColor = true,
+                Font = new Font("微软雅黑", 8)
+            };
+            btnSelectPlistConfigDir.Click += BtnSelectPlistConfigDir_Click;
+
+            // Plist配置目录变更时自动刷新文件列表
+            txtPlistConfigDirectory.TextChanged += (s, e) => LoadPlistConfigs();
+
             // 母盘目录
             var lblMotherDiskDirectory = new Label()
             {
                 Text = "母盘目录:",
-                Location = new Point(20, 230),
+                Location = new Point(20, 310),
                 Size = new Size(80, 20),
                 Font = new Font("微软雅黑", 9)
             };
 
             txtMotherDiskDirectory = new TextBox()
             {
-                Location = new Point(110, 230),
+                Location = new Point(110, 310),
                 Size = new Size(250, 25),
                 Font = new Font("微软雅黑", 9)
             };
@@ -272,7 +334,7 @@ namespace VMCloneApp.Forms
             var btnSelectMotherDiskDir = new Button()
             {
                 Text = "选择",
-                Location = new Point(370, 230),
+                Location = new Point(370, 310),
                 Size = new Size(50, 25),
                 FlatStyle = FlatStyle.Standard,
                 UseVisualStyleBackColor = true,
@@ -287,14 +349,14 @@ namespace VMCloneApp.Forms
             var lblCloneVMDirectory = new Label()
             {
                 Text = "克隆目录:",
-                Location = new Point(20, 270),
+                Location = new Point(20, 350),
                 Size = new Size(80, 20),
                 Font = new Font("微软雅黑", 9)
             };
 
             txtCloneVMDirectory = new TextBox()
             {
-                Location = new Point(110, 270),
+                Location = new Point(110, 350),
                 Size = new Size(250, 25),
                 Font = new Font("微软雅黑", 9)
             };
@@ -302,7 +364,7 @@ namespace VMCloneApp.Forms
             var btnSelectCloneVMDir = new Button()
             {
                 Text = "选择",
-                Location = new Point(370, 270),
+                Location = new Point(370, 350),
                 Size = new Size(50, 25),
                 FlatStyle = FlatStyle.Standard,
                 UseVisualStyleBackColor = true,
@@ -314,7 +376,9 @@ namespace VMCloneApp.Forms
                 lblMotherDisk, cmbMotherDisk,
                 lblCloneCount, cmbCloneCount,
                 lblWumaConfig, cmbWumaConfig, lblWumaConfigAvailableCount,
-                lblNamingPattern, txtNamingPattern,
+                lblPlistConfig, cmbPlistConfig, lblPlistConfigAvailableCount,
+                lblNamingPattern, txtNamingPattern, lblNamingHelp,
+                lblPlistConfigDirectory, txtPlistConfigDirectory, btnSelectPlistConfigDir,
                 lblMotherDiskDirectory, txtMotherDiskDirectory, btnSelectMotherDiskDir,
                 lblCloneVMDirectory, txtCloneVMDirectory, btnSelectCloneVMDir
             });
@@ -701,7 +765,7 @@ namespace VMCloneApp.Forms
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
             cmbEmailTemplate.Items.AddRange(new object[] { "模版1", "模版2", "模版三" });
-            cmbEmailTemplate.SelectedIndex = 0;
+            // 初始化时不设置默认选择，由LoadConfig方法根据配置文件设置
 
             // 发信间隔配置
             var lblEmailInterval = new Label()
@@ -722,7 +786,7 @@ namespace VMCloneApp.Forms
             {
                 cmbEmailInterval.Items.Add(i.ToString());
             }
-            cmbEmailInterval.SelectedIndex = 0;
+            // 初始化时不设置默认选择，由LoadConfig方法根据配置文件设置
 
             // 号码模板文件配置
             var lblNumberTemplateFile = new Label()
@@ -873,23 +937,11 @@ namespace VMCloneApp.Forms
                 Font = new Font("微软雅黑", 8)
             };
 
-            // 刷新配置信息按钮
-            var btnRefreshInfo = new Button()
-            {
-                Text = "刷新信息",
-                Location = new Point(20, 150),
-                Size = new Size(80, 30),
-                FlatStyle = FlatStyle.Standard,
-                UseVisualStyleBackColor = true,
-                Font = new Font("微软雅黑", 9)
-            };
-            btnRefreshInfo.Click += (s, e) => RefreshConfigInfo(txtConfigInfo);
-
             // 备份配置文件按钮
             var btnBackupConfig = new Button()
             {
                 Text = "备份配置",
-                Location = new Point(120, 150),
+                Location = new Point(20, 150),
                 Size = new Size(80, 30),
                 FlatStyle = FlatStyle.Standard,
                 UseVisualStyleBackColor = true,
@@ -901,13 +953,25 @@ namespace VMCloneApp.Forms
             var btnRestoreDefault = new Button()
             {
                 Text = "恢复默认",
-                Location = new Point(220, 150),
+                Location = new Point(120, 150),
                 Size = new Size(80, 30),
                 FlatStyle = FlatStyle.Standard,
                 UseVisualStyleBackColor = true,
                 Font = new Font("微软雅黑", 9)
             };
             btnRestoreDefault.Click += BtnRestoreDefault_Click;
+
+            // 更改配置目录按钮
+            var btnChangeConfigDir = new Button()
+            {
+                Text = "更改目录",
+                Location = new Point(220, 150),
+                Size = new Size(80, 30),
+                FlatStyle = FlatStyle.Standard,
+                UseVisualStyleBackColor = true,
+                Font = new Font("微软雅黑", 9)
+            };
+            btnChangeConfigDir.Click += BtnChangeConfigDir_Click;
 
             // 打开配置文件目录按钮
             var btnOpenConfigDir = new Button()
@@ -925,14 +989,14 @@ namespace VMCloneApp.Forms
             var lblVMDirectory = new Label()
             {
                 Text = "虚拟机软件目录:",
-                Location = new Point(20, 200),
+                Location = new Point(20, 240),
                 Size = new Size(100, 20),
                 Font = new Font("微软雅黑", 9, FontStyle.Bold)
             };
 
             txtVMDirectory = new TextBox()
             {
-                Location = new Point(130, 200),
+                Location = new Point(130, 240),
                 Size = new Size(300, 25), // 增大宽度为300，显示更多内容
                 Font = new Font("微软雅黑", 9)
             };
@@ -940,7 +1004,7 @@ namespace VMCloneApp.Forms
             var btnSelectVMDir = new Button()
             {
                 Text = "选择",
-                Location = new Point(440, 200),
+                Location = new Point(440, 240),
                 Size = new Size(50, 25),
                 FlatStyle = FlatStyle.Standard,
                 UseVisualStyleBackColor = true,
@@ -953,7 +1017,7 @@ namespace VMCloneApp.Forms
 
             tabPage.Controls.AddRange(new Control[] {
                 lblConfigInfo, txtConfigInfo,
-                btnRefreshInfo, btnBackupConfig, btnRestoreDefault, btnOpenConfigDir,
+                btnBackupConfig, btnRestoreDefault, btnChangeConfigDir, btnOpenConfigDir,
                 lblVMDirectory, txtVMDirectory, btnSelectVMDir
             });
         }
@@ -962,7 +1026,7 @@ namespace VMCloneApp.Forms
         {
             try
             {
-                txtConfigInfo.Text = ConfigManager.GetConfigFileInfo();
+                txtConfigInfo.Text = ConfigIniManager.GetConfigFileInfo();
             }
             catch (Exception ex)
             {
@@ -1028,18 +1092,18 @@ namespace VMCloneApp.Forms
                     if (wumaFiles.Any())
                     {
                         cmbWumaFile.Items.AddRange(wumaFiles.ToArray());
-                        cmbWumaFile.SelectedIndex = 0;
+                        // 初始化时不设置默认选择，由LoadConfig方法根据配置文件设置
                     }
                     else
                     {
                         cmbWumaFile.Items.Add("未找到五码配置文件");
-                        cmbWumaFile.SelectedIndex = 0;
+                        // 初始化时不设置默认选择，由LoadConfig方法根据配置文件设置
                     }
                 }
                 else
                 {
                     cmbWumaFile.Items.Add("五码配置目录不存在或无效");
-                    cmbWumaFile.SelectedIndex = 0;
+                    // 初始化时不设置默认选择，由LoadConfig方法根据配置文件设置
                 }
                 
                 // 加载完成后刷新默认配置下拉框
@@ -1049,7 +1113,7 @@ namespace VMCloneApp.Forms
             {
                 cmbWumaFile.Items.Clear();
                 cmbWumaFile.Items.Add($"加载五码配置失败: {ex.Message}");
-                cmbWumaFile.SelectedIndex = 0;
+                // 初始化时不设置默认选择，由LoadConfig方法根据配置文件设置
             }
         }
 
@@ -1066,19 +1130,19 @@ namespace VMCloneApp.Forms
                     var itemsArray = new object[cmbWumaFile.Items.Count];
                     cmbWumaFile.Items.CopyTo(itemsArray, 0);
                     cmbDefaultWuma.Items.AddRange(itemsArray);
-                    cmbDefaultWuma.SelectedIndex = 0;
+                    // 初始化时不设置默认选择，由LoadConfig方法根据配置文件设置
                 }
                 else
                 {
                     cmbDefaultWuma.Items.Add("请先配置五码文件");
-                    cmbDefaultWuma.SelectedIndex = 0;
+                    // 初始化时不设置默认选择，由LoadConfig方法根据配置文件设置
                 }
             }
             catch (Exception ex)
             {
                 cmbDefaultWuma.Items.Clear();
                 cmbDefaultWuma.Items.Add($"加载默认配置失败: {ex.Message}");
-                cmbDefaultWuma.SelectedIndex = 0;
+                // 初始化时不设置默认选择，由LoadConfig方法根据配置文件设置
             }
         }
 
@@ -1153,18 +1217,18 @@ namespace VMCloneApp.Forms
                     if (appleIdFiles.Any())
                     {
                         cmbAppleIdFile.Items.AddRange(appleIdFiles.ToArray());
-                        cmbAppleIdFile.SelectedIndex = 0;
+                        // 初始化时不设置默认选择，由LoadConfig方法根据配置文件设置
                     }
                     else
                     {
                         cmbAppleIdFile.Items.Add("未找到AppleID配置文件");
-                        cmbAppleIdFile.SelectedIndex = 0;
+                        // 初始化时不设置默认选择，由LoadConfig方法根据配置文件设置
                     }
                 }
                 else
                 {
                     cmbAppleIdFile.Items.Add("AppleID配置目录不存在或无效");
-                    cmbAppleIdFile.SelectedIndex = 0;
+                    // 初始化时不设置默认选择，由LoadConfig方法根据配置文件设置
                 }
                 
                 // 加载完成后刷新默认配置下拉框
@@ -1174,7 +1238,7 @@ namespace VMCloneApp.Forms
             {
                 cmbAppleIdFile.Items.Clear();
                 cmbAppleIdFile.Items.Add($"加载AppleID配置失败: {ex.Message}");
-                cmbAppleIdFile.SelectedIndex = 0;
+                // 初始化时不设置默认选择，由LoadConfig方法根据配置文件设置
             }
         }
 
@@ -1191,19 +1255,19 @@ namespace VMCloneApp.Forms
                     var itemsArray = new object[cmbAppleIdFile.Items.Count];
                     cmbAppleIdFile.Items.CopyTo(itemsArray, 0);
                     cmbDefaultAppleId.Items.AddRange(itemsArray);
-                    cmbDefaultAppleId.SelectedIndex = 0;
+                    // 初始化时不设置默认选择，由LoadConfig方法根据配置文件设置
                 }
                 else
                 {
                     cmbDefaultAppleId.Items.Add("请先配置AppleID文件");
-                    cmbDefaultAppleId.SelectedIndex = 0;
+                    // 初始化时不设置默认选择，由LoadConfig方法根据配置文件设置
                 }
             }
             catch (Exception ex)
             {
                 cmbDefaultAppleId.Items.Clear();
                 cmbDefaultAppleId.Items.Add($"加载默认配置失败: {ex.Message}");
-                cmbDefaultAppleId.SelectedIndex = 0;
+                // 初始化时不设置默认选择，由LoadConfig方法根据配置文件设置
             }
         }
 
@@ -1276,6 +1340,10 @@ namespace VMCloneApp.Forms
                 // 从五码配置目录获取配置文件
                 string wumaConfigDirectory = txtWumaConfigDirectory?.Text ?? "C:\\WumaConfigs";
                 
+                // 添加调试信息
+                string debugInfo = $"txtWumaConfigDirectory is null: {txtWumaConfigDirectory == null}, Text: '{txtWumaConfigDirectory?.Text ?? "NULL"}', Directory exists: {Directory.Exists(wumaConfigDirectory)}";
+                AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 调试信息 - 五码配置加载: {debugInfo}");
+                
                 if (!string.IsNullOrEmpty(wumaConfigDirectory) && Directory.Exists(wumaConfigDirectory))
                 {
                     // 获取所有.txt文件
@@ -1283,28 +1351,101 @@ namespace VMCloneApp.Forms
                         .Select(file => Path.GetFileNameWithoutExtension(file))
                         .ToList();
                     
+                    AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 找到五码配置文件数量: {wumaFiles.Count}");
+                    
                     if (wumaFiles.Any())
                     {
                         cmbWumaConfig.Items.AddRange(wumaFiles.ToArray());
-                        cmbWumaConfig.SelectedIndex = 0;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 已加载五码配置选项: {string.Join(", ", wumaFiles)}");
+                        // 初始化时不设置默认选择，由LoadConfig方法根据配置文件设置
                     }
                     else
                     {
                         cmbWumaConfig.Items.Add("未找到五码配置文件");
-                        cmbWumaConfig.SelectedIndex = 0;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 警告: 未找到五码配置文件");
+                        // 初始化时不设置默认选择，由LoadConfig方法根据配置文件设置
                     }
                 }
                 else
                 {
                     cmbWumaConfig.Items.Add("五码配置目录不存在或无效");
-                    cmbWumaConfig.SelectedIndex = 0;
+                    AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 错误: 五码配置目录不存在或无效 - {wumaConfigDirectory}");
+                    // 初始化时不设置默认选择，由LoadConfig方法根据配置文件设置
                 }
             }
             catch (Exception ex)
             {
                 cmbWumaConfig.Items.Clear();
                 cmbWumaConfig.Items.Add($"加载五码配置失败: {ex.Message}");
-                cmbWumaConfig.SelectedIndex = 0;
+                AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 错误: 加载五码配置失败 - {ex.Message}");
+                // 初始化时不设置默认选择，由LoadConfig方法根据配置文件设置
+            }
+        }
+
+        private void LoadPlistConfigs()
+        {
+            try
+            {
+                cmbPlistConfig.Items.Clear();
+                
+                // 检查txtPlistConfigDirectory文本框的状态
+                string debugInfo = $"txtPlistConfigDirectory is null: {txtPlistConfigDirectory == null}, Text: '{txtPlistConfigDirectory?.Text ?? "NULL"}'";
+                string logMessageDebug = $"[{DateTime.Now:HH:mm:ss}] 调试信息: {debugInfo}";
+                AddResultToMainForm(logMessageDebug);
+                
+                // 从plist配置目录获取配置文件
+                string plistConfigDirectory = txtPlistConfigDirectory?.Text ?? "D:\\xiaowen_1448\\macos_vm_c#\\config\\plist";
+                
+                // 在日志中显示正在加载的目录
+                string logMessage1 = $"[{DateTime.Now:HH:mm:ss}] 正在加载plist配置目录: {plistConfigDirectory}";
+                AddResultToMainForm(logMessage1);
+                
+                if (!string.IsNullOrEmpty(plistConfigDirectory) && Directory.Exists(plistConfigDirectory))
+                {
+                    // 获取所有.plist文件
+                    var plistFiles = Directory.GetFiles(plistConfigDirectory, "*.plist")
+                        .Select(file => Path.GetFileName(file))
+                        .ToList();
+                    
+                    // 在日志中显示找到的文件
+                    string foundFiles = string.Join(", ", plistFiles);
+                    string logMessage2 = $"[{DateTime.Now:HH:mm:ss}] 找到的plist文件: {foundFiles}";
+                    AddResultToMainForm(logMessage2);
+                    
+                    if (plistFiles.Any())
+                    {
+                        cmbPlistConfig.Items.AddRange(plistFiles.ToArray());
+                        
+                        // 在日志中显示加载的选项数量
+                        string logMessage3 = $"[{DateTime.Now:HH:mm:ss}] 已加载 {plistFiles.Count} 个plist配置选项";
+                        AddResultToMainForm(logMessage3);
+                        
+                        // 不自动选择第一个选项，由LoadConfig方法处理选择逻辑
+                    }
+                    else
+                    {
+                        cmbPlistConfig.Items.Add("未找到plist配置文件");
+                        
+                        // 在日志中显示警告信息
+                        string logMessage4 = $"[{DateTime.Now:HH:mm:ss}] 警告: 在目录 {plistConfigDirectory} 中未找到plist配置文件";
+                        AddResultToMainForm(logMessage4);
+                    }
+                }
+                else
+                {
+                    cmbPlistConfig.Items.Add("plist配置目录不存在或无效");
+                    
+                    // 在日志中显示错误信息
+                    string logMessage5 = $"[{DateTime.Now:HH:mm:ss}] 错误: plist配置目录不存在或无效: {plistConfigDirectory}";
+                    AddResultToMainForm(logMessage5);
+                    cmbPlistConfig.SelectedIndex = 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                cmbPlistConfig.Items.Clear();
+                cmbPlistConfig.Items.Add($"加载plist配置失败: {ex.Message}");
+                cmbPlistConfig.SelectedIndex = 0;
             }
         }
 
@@ -1601,6 +1742,103 @@ namespace VMCloneApp.Forms
             }
         }
 
+        private void BtnDeleteConfig_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string configPath = ConfigManager.GetConfigFilePath();
+                
+                if (File.Exists(configPath))
+                {
+                    var result = MessageBox.Show("确定要删除配置文件吗？删除后将使用默认配置。", "确认删除", 
+                        MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                    
+                    if (result == DialogResult.Yes)
+                    {
+                        File.Delete(configPath);
+                        MessageBox.Show("配置文件已删除，将使用默认配置。", "删除成功", 
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        
+                        // 刷新配置信息显示
+                        var configTab = tabControl.TabPages[5]; // 配置管理选项卡
+                        var txtConfigInfo = configTab.Controls.OfType<TextBox>().FirstOrDefault();
+                        if (txtConfigInfo != null)
+                        {
+                            RefreshConfigInfo(txtConfigInfo);
+                        }
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("配置文件不存在", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"删除配置文件失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void BtnChangeConfigDir_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                using (var folderDialog = new FolderBrowserDialog())
+                {
+                    folderDialog.Description = "选择新的配置文件存储目录";
+                    folderDialog.SelectedPath = Path.GetDirectoryName(ConfigManager.GetConfigFilePath());
+                    
+                    if (folderDialog.ShowDialog() == DialogResult.OK)
+                    {
+                        string newConfigDir = folderDialog.SelectedPath;
+                        string newConfigPath = Path.Combine(newConfigDir, "vmclone_config.xml");
+                        
+                        // 检查当前配置文件是否存在
+                        string currentConfigPath = ConfigManager.GetConfigFilePath();
+                        
+                        if (File.Exists(currentConfigPath))
+                        {
+                            // 复制配置文件到新位置
+                            File.Copy(currentConfigPath, newConfigPath, true);
+                        }
+                        else
+                        {
+                            // 创建默认配置文件到新位置
+                            var defaultConfig = new AppConfig();
+                            
+                            // 使用XML序列化保存到新位置
+                            var serializer = new XmlSerializer(typeof(AppConfig));
+                            using (var writer = new StreamWriter(newConfigPath))
+                            {
+                                serializer.Serialize(writer, defaultConfig);
+                            }
+                        }
+                        
+                        // 更新config.ini文件中的配置路径
+                        ConfigIniManager.SaveConfigFilePath(newConfigPath);
+                        
+                        // 动态重新加载配置，确保界面立即更新
+                        LoadConfig();
+                        
+                        MessageBox.Show($"配置文件路径已更新到:\n{newConfigPath}\n\n配置已动态更新，当前界面已使用新的配置文件。", "更改成功", 
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        
+                        // 刷新配置信息显示
+                        var configTab = tabControl.TabPages[5]; // 配置管理选项卡
+                        var txtConfigInfo = configTab.Controls.OfType<TextBox>().FirstOrDefault();
+                        if (txtConfigInfo != null)
+                        {
+                            RefreshConfigInfo(txtConfigInfo);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"更改配置目录失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         private void BtnSelectMotherDiskDir_Click(object sender, EventArgs e)
         {
             SelectDirectory("选择母盘目录", txtMotherDiskDirectory);
@@ -1609,6 +1847,11 @@ namespace VMCloneApp.Forms
         private void BtnSelectCloneVMDir_Click(object sender, EventArgs e)
         {
             SelectDirectory("选择克隆虚拟机目录", txtCloneVMDirectory);
+        }
+
+        private void BtnSelectPlistConfigDir_Click(object sender, EventArgs e)
+        {
+            SelectDirectory("选择Plist配置目录", txtPlistConfigDirectory);
         }
 
         private void SelectDirectory(string description, TextBox targetTextBox)
@@ -1655,34 +1898,282 @@ namespace VMCloneApp.Forms
             {
                 var config = ConfigManager.LoadConfig();
                 
-                // 克隆配置
-                cmbMotherDisk.SelectedItem = config.MotherDisk;
-                cmbCloneCount.SelectedItem = config.CloneCount.ToString();
-                cmbWumaConfig.SelectedItem = config.WumaConfig;
+                // 在日志中显示配置加载的基本信息
+                string logMessageStart = $"[{DateTime.Now:HH:mm:ss}] 开始加载配置: MotherDisk={config.MotherDisk}, CloneCount={config.CloneCount}, WumaConfig={config.WumaConfig}, PlistConfig={config.PlistConfig}";
+                AddResultToMainForm(logMessageStart);
+                
+                // 设置文本框值
                 txtNamingPattern.Text = config.NamingPattern;
                 txtMotherDiskDirectory.Text = config.MotherDiskDirectory;
                 txtCloneVMDirectory.Text = config.CloneVMDirectory;
                 
+                // 临时禁用TextChanged事件，避免重复调用LoadPlistConfigs
+                txtPlistConfigDirectory.TextChanged -= (s, e) => LoadPlistConfigs();
+                
+                // 设置配置目录文本框的值（确保在加载选项之前设置）
+                txtPlistConfigDirectory.Text = config.PlistConfigDirectory;
+                txtWumaConfigDirectory.Text = config.WumaConfigDirectory;
+                txtAppleIdConfigDirectory.Text = config.AppleIdConfigDirectory;
+                
+                // 设置号码模板目录文本框的值
+                if (txtNumberTemplateDirectory != null)
+                {
+                    txtNumberTemplateDirectory.Text = config.NumberTemplateDirectory;
+                }
+                
+                // 手动加载配置列表（确保同步执行）
+                LoadPlistConfigs();
+                
+                // 重新启用TextChanged事件
+                txtPlistConfigDirectory.TextChanged += (s, e) => LoadPlistConfigs();
+                
+                // 加载其他下拉框的配置选项（在设置文本框值之后）
+                LoadMotherDiskConfigs();
+                
+                // 加载五码文件配置
+                LoadWumaConfigFiles();
+                
+                // 加载默认五码配置
+                LoadDefaultWumaConfigs();
+                
+                // 加载AppleID文件配置
+                LoadAppleIdConfigFiles();
+                
+                // 加载默认AppleID配置
+                LoadDefaultAppleIdConfigs();
+                
+                // 加载号码模板文件配置
+                LoadNumberTemplateFiles();
+                
+                // 克隆配置 - 确保下拉框已填充选项后再进行选择
+                if (cmbMotherDisk.Items.Count > 0)
+                {
+                    var motherDiskItem = cmbMotherDisk.Items.Cast<string>()
+                        .FirstOrDefault(item => item.Equals(config.MotherDisk, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (motherDiskItem != null)
+                    {
+                        cmbMotherDisk.SelectedItem = motherDiskItem;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 已选择母盘配置: {motherDiskItem}");
+                    }
+                    else if (cmbMotherDisk.Items.Count > 0)
+                    {
+                        cmbMotherDisk.SelectedIndex = 0;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 警告: 母盘配置 '{config.MotherDisk}' 不存在，已选择 '{cmbMotherDisk.SelectedItem}'");
+                    }
+                }
+                
+                if (cmbCloneCount.Items.Count > 0)
+                {
+                    var cloneCountItem = cmbCloneCount.Items.Cast<string>()
+                        .FirstOrDefault(item => item.Equals(config.CloneCount.ToString(), StringComparison.OrdinalIgnoreCase));
+                    
+                    if (cloneCountItem != null)
+                    {
+                        cmbCloneCount.SelectedItem = cloneCountItem;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 已选择克隆数量: {cloneCountItem}");
+                    }
+                    else if (cmbCloneCount.Items.Count > 0)
+                    {
+                        cmbCloneCount.SelectedIndex = 0;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 警告: 克隆数量 '{config.CloneCount}' 不存在，已选择 '{cmbCloneCount.SelectedItem}'");
+                    }
+                }
+                
+                if (cmbWumaConfig.Items.Count > 0)
+                {
+                    var wumaConfigItem = cmbWumaConfig.Items.Cast<string>()
+                        .FirstOrDefault(item => item.Equals(config.WumaConfig, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (wumaConfigItem != null)
+                    {
+                        cmbWumaConfig.SelectedItem = wumaConfigItem;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 已选择五码配置: {wumaConfigItem}");
+                    }
+                    else if (cmbWumaConfig.Items.Count > 0)
+                    {
+                        cmbWumaConfig.SelectedIndex = 0;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 警告: 五码配置 '{config.WumaConfig}' 不存在，已选择 '{cmbWumaConfig.SelectedItem}'");
+                    }
+                }
+                
+                // 设置plist配置选择，确保下拉框已填充选项
+                if (cmbPlistConfig.Items.Count > 0)
+                {
+                    // 在日志中显示所有可用的plist选项
+                    string availableOptions = string.Join(", ", cmbPlistConfig.Items.Cast<string>());
+                    AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 可用的plist选项: {availableOptions}");
+                    
+                    // 尝试选择配置文件中的值
+                    var plistItem = cmbPlistConfig.Items.Cast<string>()
+                        .FirstOrDefault(item => item.Equals(config.PlistConfig, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (plistItem != null)
+                    {
+                        cmbPlistConfig.SelectedItem = plistItem;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 已选择plist配置: {plistItem}");
+                    }
+                    else if (cmbPlistConfig.Items.Count > 0)
+                    {
+                        cmbPlistConfig.SelectedIndex = 0;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 警告: plist配置 '{config.PlistConfig}' 不存在，已选择 '{cmbPlistConfig.SelectedItem}'");
+                    }
+                }
+                else
+                {
+                    AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 错误: plist配置下拉框为空，无法加载配置");
+                }
+                
                 // 五码配置
-                cmbWumaFile.SelectedItem = config.WumaFile;
-                cmbDefaultWuma.SelectedItem = config.DefaultWuma;
+                if (cmbWumaFile.Items.Count > 0)
+                {
+                    var wumaFileItem = cmbWumaFile.Items.Cast<string>()
+                        .FirstOrDefault(item => item.Equals(config.WumaFile, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (wumaFileItem != null)
+                    {
+                        cmbWumaFile.SelectedItem = wumaFileItem;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 已选择五码文件: {wumaFileItem}");
+                    }
+                    else if (cmbWumaFile.Items.Count > 0)
+                    {
+                        cmbWumaFile.SelectedIndex = 0;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 警告: 五码文件 '{config.WumaFile}' 不存在，已选择 '{cmbWumaFile.SelectedItem}'");
+                    }
+                }
+                
+                if (cmbDefaultWuma.Items.Count > 0)
+                {
+                    var defaultWumaItem = cmbDefaultWuma.Items.Cast<string>()
+                        .FirstOrDefault(item => item.Equals(config.DefaultWuma, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (defaultWumaItem != null)
+                    {
+                        cmbDefaultWuma.SelectedItem = defaultWumaItem;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 已选择默认五码配置: {defaultWumaItem}");
+                    }
+                    else if (cmbDefaultWuma.Items.Count > 0)
+                    {
+                        cmbDefaultWuma.SelectedIndex = 0;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 警告: 默认五码配置 '{config.DefaultWuma}' 不存在，已选择 '{cmbDefaultWuma.SelectedItem}'");
+                    }
+                }
+                
                 txtWumaConfigDirectory.Text = config.WumaConfigDirectory;
                 
-                // 刷新克隆配置选项卡的五码配置下拉框
+                // 刷新克隆配置选项卡的五码配置下拉框（在配置选择之前）
                 LoadWumaConfigsForCloneTab();
                 
+                // 重新选择五码配置（确保下拉框已填充选项）
+                if (cmbWumaConfig.Items.Count > 0)
+                {
+                    var wumaConfigItem = cmbWumaConfig.Items.Cast<string>()
+                        .FirstOrDefault(item => item.Equals(config.WumaConfig, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (wumaConfigItem != null)
+                    {
+                        cmbWumaConfig.SelectedItem = wumaConfigItem;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 已选择五码配置: {wumaConfigItem}");
+                    }
+                    else if (cmbWumaConfig.Items.Count > 0)
+                    {
+                        cmbWumaConfig.SelectedIndex = 0;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 警告: 五码配置 '{config.WumaConfig}' 不存在，已选择 '{cmbWumaConfig.SelectedItem}'");
+                    }
+                }
+                
                 // AppleID配置
-                cmbAppleIdFile.SelectedItem = config.AppleIdFile;
-                cmbDefaultAppleId.SelectedItem = config.DefaultAppleId;
+                if (cmbAppleIdFile.Items.Count > 0)
+                {
+                    var appleIdFileItem = cmbAppleIdFile.Items.Cast<string>()
+                        .FirstOrDefault(item => item.Equals(config.AppleIdFile, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (appleIdFileItem != null)
+                    {
+                        cmbAppleIdFile.SelectedItem = appleIdFileItem;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 已选择AppleID文件: {appleIdFileItem}");
+                    }
+                    else if (cmbAppleIdFile.Items.Count > 0)
+                    {
+                        cmbAppleIdFile.SelectedIndex = 0;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 警告: AppleID文件 '{config.AppleIdFile}' 不存在，已选择 '{cmbAppleIdFile.SelectedItem}'");
+                    }
+                }
+                
+                if (cmbDefaultAppleId.Items.Count > 0)
+                {
+                    var defaultAppleIdItem = cmbDefaultAppleId.Items.Cast<string>()
+                        .FirstOrDefault(item => item.Equals(config.DefaultAppleId, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (defaultAppleIdItem != null)
+                    {
+                        cmbDefaultAppleId.SelectedItem = defaultAppleIdItem;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 已选择默认AppleID配置: {defaultAppleIdItem}");
+                    }
+                    else if (cmbDefaultAppleId.Items.Count > 0)
+                    {
+                        cmbDefaultAppleId.SelectedIndex = 0;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 警告: 默认AppleID配置 '{config.DefaultAppleId}' 不存在，已选择 '{cmbDefaultAppleId.SelectedItem}'");
+                    }
+                }
+                
                 txtAppleIdConfigDirectory.Text = config.AppleIdConfigDirectory;
                 
                 // 客户端管理
                 txtApiUrl.Text = config.ApiUrl;
                 
                 // 发信管理
-                cmbEmailTemplate.SelectedItem = config.EmailTemplate;
-                cmbEmailInterval.SelectedItem = config.EmailInterval.ToString();
-                cmbNumberTemplateFile.SelectedItem = config.NumberTemplateFile;
+                if (cmbEmailTemplate.Items.Count > 0)
+                {
+                    var emailTemplateItem = cmbEmailTemplate.Items.Cast<string>()
+                        .FirstOrDefault(item => item.Equals(config.EmailTemplate, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (emailTemplateItem != null)
+                    {
+                        cmbEmailTemplate.SelectedItem = emailTemplateItem;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 已选择邮件模板: {emailTemplateItem}");
+                    }
+                    else if (cmbEmailTemplate.Items.Count > 0)
+                    {
+                        cmbEmailTemplate.SelectedIndex = 0;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 警告: 邮件模板 '{config.EmailTemplate}' 不存在，已选择 '{cmbEmailTemplate.SelectedItem}'");
+                    }
+                }
+                
+                if (cmbEmailInterval.Items.Count > 0)
+                {
+                    var emailIntervalItem = cmbEmailInterval.Items.Cast<string>()
+                        .FirstOrDefault(item => item.Equals(config.EmailInterval.ToString(), StringComparison.OrdinalIgnoreCase));
+                    
+                    if (emailIntervalItem != null)
+                    {
+                        cmbEmailInterval.SelectedItem = emailIntervalItem;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 已选择发信间隔: {emailIntervalItem}");
+                    }
+                    else if (cmbEmailInterval.Items.Count > 0)
+                    {
+                        cmbEmailInterval.SelectedIndex = 0;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 警告: 发信间隔 '{config.EmailInterval}' 不存在，已选择 '{cmbEmailInterval.SelectedItem}'");
+                    }
+                }
+                
+                if (cmbNumberTemplateFile.Items.Count > 0)
+                {
+                    var numberTemplateFileItem = cmbNumberTemplateFile.Items.Cast<string>()
+                        .FirstOrDefault(item => item.Equals(config.NumberTemplateFile, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (numberTemplateFileItem != null)
+                    {
+                        cmbNumberTemplateFile.SelectedItem = numberTemplateFileItem;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 已选择号码模板文件: {numberTemplateFileItem}");
+                    }
+                    else if (cmbNumberTemplateFile.Items.Count > 0)
+                    {
+                        cmbNumberTemplateFile.SelectedIndex = 0;
+                        AddResultToMainForm($"[{DateTime.Now:HH:mm:ss}] 警告: 号码模板文件 '{config.NumberTemplateFile}' 不存在，已选择 '{cmbNumberTemplateFile.SelectedItem}'");
+                    }
+                }
+                
                 lblNumberCount.Text = $"号码数量: {config.NumberCount}";
                 
                 // 设置号码模板目录
@@ -1708,9 +2199,11 @@ namespace VMCloneApp.Forms
                 MotherDisk = cmbMotherDisk.SelectedItem?.ToString() ?? "mupan1",
                 CloneCount = int.TryParse(cmbCloneCount.SelectedItem?.ToString(), out int cloneCount) ? cloneCount : 1,
                 WumaConfig = cmbWumaConfig.SelectedItem?.ToString() ?? "14.1",
+                PlistConfig = cmbPlistConfig.SelectedItem?.ToString() ?? "default.plist",
                 NamingPattern = txtNamingPattern.Text,
                 MotherDiskDirectory = txtMotherDiskDirectory.Text,
                 CloneVMDirectory = txtCloneVMDirectory.Text,
+                PlistConfigDirectory = txtPlistConfigDirectory?.Text ?? "D:\\xiaowen_1448\\macos_vm_c#\\config\\plist",
                 
                 // 五码配置
                 WumaFile = cmbWumaFile.SelectedItem?.ToString() ?? "14.1",
