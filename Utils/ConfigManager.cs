@@ -19,10 +19,12 @@ namespace VMCloneApp.Utils
         // 五码配置
         public string WumaFile { get; set; } = "macOS-14.1.wuma";
         public string DefaultWuma { get; set; } = "macOS-14.1";
+        public string WumaConfigDirectory { get; set; } = "C:\\WumaConfigs";
 
         // AppleID配置
         public string AppleIdFile { get; set; } = "appleid-2026.json";
         public string DefaultAppleId { get; set; } = "default@apple.com";
+        public string AppleIdConfigDirectory { get; set; } = "C:\\AppleIdConfigs";
 
         // 客户端管理
         public string ApiUrl { get; set; } = "http://localhost:8080/api/v1";

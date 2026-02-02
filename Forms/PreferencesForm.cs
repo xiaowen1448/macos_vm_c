@@ -25,6 +25,9 @@ namespace VMCloneApp.Forms
         private ComboBox cmbNumberTemplateFile;
         private Label lblNumberCount;
         private TextBox txtWumaConfigDirectory;  // 五码配置目录文本框引用
+        private TextBox txtAppleIdConfigDirectory;  // AppleID配置目录文本框引用
+        private Label lblWumaAvailableCount;  // 五码可用数量标签
+        private Label lblAppleIdAvailableCount;  // AppleID可用数量标签
         private ExcelStyleForm mainForm;  // 主窗体引用
 
         public PreferencesForm(ExcelStyleForm parentForm)
@@ -326,11 +329,14 @@ namespace VMCloneApp.Forms
             
             // 动态加载五码配置文件
             LoadWumaConfigFiles();
+            
+            // 五码文件选择事件
+            cmbWumaFile.SelectedIndexChanged += (s, e) => UpdateWumaFileLineCount();
 
             // 可用数量说明
-            var lblAvailableCount = new Label()
+            lblWumaAvailableCount = new Label()
             {
-                Text = "可用数量: 100",
+                Text = "可用数量: 0",
                 Location = new Point(280, 32),
                 Size = new Size(150, 20),
                 Font = new Font("微软雅黑", 8),
@@ -358,7 +364,7 @@ namespace VMCloneApp.Forms
                 Font = new Font("微软雅黑", 9)
             };
 
-            var txtWumaConfigDirectory = new TextBox()
+            txtWumaConfigDirectory = new TextBox()
             {
                 Location = new Point(110, 120),
                 Size = new Size(200, 25),
@@ -410,7 +416,7 @@ namespace VMCloneApp.Forms
             };
 
             tabPage.Controls.AddRange(new Control[] {
-                lblWumaFile, cmbWumaFile, lblAvailableCount,
+                lblWumaFile, cmbWumaFile, lblWumaAvailableCount,
                 btnImportWuma,
                 lblWumaConfigDirectory, txtWumaConfigDirectory, btnSelectWumaConfigDir,
                 lblDefaultWuma, cmbDefaultWuma,
@@ -434,18 +440,22 @@ namespace VMCloneApp.Forms
             cmbAppleIdFile = new ComboBox()
             {
                 Location = new Point(110, 30),
-                Size = new Size(150, 25),
+                Size = new Size(200, 25),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
-            cmbAppleIdFile.Items.AddRange(new object[] { "2026id", "2026id002" });
-            cmbAppleIdFile.SelectedIndex = 0;
+            
+            // 动态加载AppleID配置文件
+            LoadAppleIdConfigFiles();
+            
+            // AppleID文件选择事件
+            cmbAppleIdFile.SelectedIndexChanged += (s, e) => UpdateAppleIdFileLineCount();
 
             // 可用数量说明
-            var lblAvailableCount = new Label()
+            lblAppleIdAvailableCount = new Label()
             {
-                Text = "可用AppleID数量: 50",
-                Location = new Point(280, 32),
-                Size = new Size(150, 20),
+                Text = "可用AppleID数量: 0",
+                Location = new Point(320, 32),
+                Size = new Size(180, 20),
                 Font = new Font("微软雅黑", 8),
                 ForeColor = Color.Gray
             };
@@ -462,37 +472,70 @@ namespace VMCloneApp.Forms
             };
             btnImportAppleId.Click += BtnImportAppleId_Click;
 
+            // AppleID配置目录
+            var lblAppleIdConfigDirectory = new Label()
+            {
+                Text = "配置目录:",
+                Location = new Point(20, 120),
+                Size = new Size(80, 20),
+                Font = new Font("微软雅黑", 9)
+            };
+
+            txtAppleIdConfigDirectory = new TextBox()
+            {
+                Location = new Point(110, 120),
+                Size = new Size(250, 25),
+                Font = new Font("微软雅黑", 9)
+            };
+            txtAppleIdConfigDirectory.Text = "C:\\AppleIdConfigs";
+
+            var btnSelectAppleIdConfigDir = new Button()
+            {
+                Text = "选择",
+                Location = new Point(370, 120),
+                Size = new Size(50, 25),
+                FlatStyle = FlatStyle.Standard,
+                UseVisualStyleBackColor = true,
+                Font = new Font("微软雅黑", 8)
+            };
+            btnSelectAppleIdConfigDir.Click += BtnSelectAppleIdConfigDir_Click;
+
+            // AppleID配置目录变更时自动刷新文件列表
+            txtAppleIdConfigDirectory.TextChanged += (s, e) => LoadAppleIdConfigFiles();
+
             // 默认AppleID配置文件
             var lblDefaultAppleId = new Label()
             {
                 Text = "默认配置:",
-                Location = new Point(20, 120),
+                Location = new Point(20, 160),
                 Size = new Size(80, 20),
                 Font = new Font("微软雅黑", 9)
             };
 
             cmbDefaultAppleId = new ComboBox()
             {
-                Location = new Point(110, 120),
+                Location = new Point(110, 160),
                 Size = new Size(150, 25),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
-            cmbDefaultAppleId.Items.AddRange(new object[] { "2026id", "2026id002" });
-            cmbDefaultAppleId.SelectedIndex = 0;
+            
+            // 动态加载默认AppleID配置
+            LoadDefaultAppleIdConfigs();
 
             // 配置说明区域
             var lblConfigInfo = new Label()
             {
-                Text = "AppleID配置包含：账号、密码、双重认证、设备管理等信息",
-                Location = new Point(20, 170),
+                Text = "AppleID配置包含：账号、密码、安全问题答案",
+                Location = new Point(20, 200),
                 Size = new Size(450, 40),
                 Font = new Font("微软雅黑", 9),
                 ForeColor = Color.DarkBlue
             };
 
             tabPage.Controls.AddRange(new Control[] {
-                lblAppleIdFile, cmbAppleIdFile, lblAvailableCount,
+                lblAppleIdFile, cmbAppleIdFile, lblAppleIdAvailableCount,
                 btnImportAppleId,
+                lblAppleIdConfigDirectory, txtAppleIdConfigDirectory, btnSelectAppleIdConfigDir,
                 lblDefaultAppleId, cmbDefaultAppleId,
                 lblConfigInfo
             });
@@ -899,8 +942,9 @@ namespace VMCloneApp.Forms
                 cmbWumaFile.Items.Clear();
                 
                 // 从配置目录获取五码配置文件
-                string wumaConfigDirectory = "C:\\WumaConfigs"; // 默认目录
-                if (Directory.Exists(wumaConfigDirectory))
+                string wumaConfigDirectory = txtWumaConfigDirectory?.Text ?? "C:\\WumaConfigs";
+                
+                if (!string.IsNullOrEmpty(wumaConfigDirectory) && Directory.Exists(wumaConfigDirectory))
                 {
                     // 获取所有.txt文件
                     var wumaFiles = Directory.GetFiles(wumaConfigDirectory, "*.txt")
@@ -920,7 +964,7 @@ namespace VMCloneApp.Forms
                 }
                 else
                 {
-                    cmbWumaFile.Items.Add("五码配置目录不存在");
+                    cmbWumaFile.Items.Add("五码配置目录不存在或无效");
                     cmbWumaFile.SelectedIndex = 0;
                 }
                 
@@ -971,18 +1015,181 @@ namespace VMCloneApp.Forms
                 using (var folderDialog = new FolderBrowserDialog())
                 {
                     folderDialog.Description = "选择五码配置目录";
-                    folderDialog.SelectedPath = "C:\\WumaConfigs";
+                    folderDialog.SelectedPath = txtWumaConfigDirectory?.Text ?? "C:\\WumaConfigs";
                     
                     if (folderDialog.ShowDialog() == DialogResult.OK)
                     {
-                        // 简化处理：直接显示选择的目录并重新加载配置
-                        MessageBox.Show($"已选择五码配置目录: {folderDialog.SelectedPath}\n请手动更新目录路径并重新加载配置。", "目录选择", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        // 自动更新文本框并刷新文件列表
+                        if (txtWumaConfigDirectory != null)
+                        {
+                            txtWumaConfigDirectory.Text = folderDialog.SelectedPath;
+                            LoadWumaConfigFiles();
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"选择目录失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void BtnSelectAppleIdConfigDir_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                using (var folderDialog = new FolderBrowserDialog())
+                {
+                    folderDialog.Description = "选择AppleID配置目录";
+                    folderDialog.SelectedPath = txtAppleIdConfigDirectory?.Text ?? "C:\\AppleIdConfigs";
+                    
+                    if (folderDialog.ShowDialog() == DialogResult.OK)
+                    {
+                        // 自动更新文本框并刷新文件列表
+                        if (txtAppleIdConfigDirectory != null)
+                        {
+                            txtAppleIdConfigDirectory.Text = folderDialog.SelectedPath;
+                            LoadAppleIdConfigFiles();
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"选择目录失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void LoadAppleIdConfigFiles()
+        {
+            try
+            {
+                cmbAppleIdFile.Items.Clear();
+                
+                // 从配置目录获取AppleID配置文件
+                string appleIdConfigDirectory = txtAppleIdConfigDirectory?.Text ?? "C:\\AppleIdConfigs";
+                
+                if (!string.IsNullOrEmpty(appleIdConfigDirectory) && Directory.Exists(appleIdConfigDirectory))
+                {
+                    // 获取所有.txt文件（AppleID配置使用txt格式）
+                    var appleIdFiles = Directory.GetFiles(appleIdConfigDirectory, "*.txt")
+                        .Select(file => Path.GetFileNameWithoutExtension(file))
+                        .ToList();
+                    
+                    if (appleIdFiles.Any())
+                    {
+                        cmbAppleIdFile.Items.AddRange(appleIdFiles.ToArray());
+                        cmbAppleIdFile.SelectedIndex = 0;
+                    }
+                    else
+                    {
+                        cmbAppleIdFile.Items.Add("未找到AppleID配置文件");
+                        cmbAppleIdFile.SelectedIndex = 0;
+                    }
+                }
+                else
+                {
+                    cmbAppleIdFile.Items.Add("AppleID配置目录不存在或无效");
+                    cmbAppleIdFile.SelectedIndex = 0;
+                }
+                
+                // 加载完成后刷新默认配置下拉框
+                LoadDefaultAppleIdConfigs();
+            }
+            catch (Exception ex)
+            {
+                cmbAppleIdFile.Items.Clear();
+                cmbAppleIdFile.Items.Add($"加载AppleID配置失败: {ex.Message}");
+                cmbAppleIdFile.SelectedIndex = 0;
+            }
+        }
+
+        private void LoadDefaultAppleIdConfigs()
+        {
+            try
+            {
+                cmbDefaultAppleId.Items.Clear();
+                
+                // 从AppleID文件下拉框中获取可用的配置
+                if (cmbAppleIdFile.Items.Count > 0 && !cmbAppleIdFile.Items[0].ToString().Contains("未找到") && !cmbAppleIdFile.Items[0].ToString().Contains("失败"))
+                {
+                    // 将ComboBox.Items转换为object数组
+                    var itemsArray = new object[cmbAppleIdFile.Items.Count];
+                    cmbAppleIdFile.Items.CopyTo(itemsArray, 0);
+                    cmbDefaultAppleId.Items.AddRange(itemsArray);
+                    cmbDefaultAppleId.SelectedIndex = 0;
+                }
+                else
+                {
+                    cmbDefaultAppleId.Items.Add("请先配置AppleID文件");
+                    cmbDefaultAppleId.SelectedIndex = 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                cmbDefaultAppleId.Items.Clear();
+                cmbDefaultAppleId.Items.Add($"加载默认配置失败: {ex.Message}");
+                cmbDefaultAppleId.SelectedIndex = 0;
+            }
+        }
+
+        private void UpdateWumaFileLineCount()
+        {
+            try
+            {
+                if (cmbWumaFile.SelectedItem == null || cmbWumaFile.SelectedItem.ToString().Contains("未找到") || cmbWumaFile.SelectedItem.ToString().Contains("失败"))
+                {
+                    lblWumaAvailableCount.Text = "可用数量: 0";
+                    return;
+                }
+                
+                string wumaConfigDirectory = txtWumaConfigDirectory?.Text ?? "C:\\WumaConfigs";
+                string fileName = cmbWumaFile.SelectedItem.ToString() + ".txt";
+                string filePath = Path.Combine(wumaConfigDirectory, fileName);
+                
+                if (File.Exists(filePath))
+                {
+                    int lineCount = File.ReadAllLines(filePath).Length;
+                    lblWumaAvailableCount.Text = $"可用数量: {lineCount}";
+                }
+                else
+                {
+                    lblWumaAvailableCount.Text = "可用数量: 0";
+                }
+            }
+            catch (Exception ex)
+            {
+                lblWumaAvailableCount.Text = "可用数量: 0";
+            }
+        }
+
+        private void UpdateAppleIdFileLineCount()
+        {
+            try
+            {
+                if (cmbAppleIdFile.SelectedItem == null || cmbAppleIdFile.SelectedItem.ToString().Contains("未找到") || cmbAppleIdFile.SelectedItem.ToString().Contains("失败"))
+                {
+                    lblAppleIdAvailableCount.Text = "可用AppleID数量: 0";
+                    return;
+                }
+                
+                string appleIdConfigDirectory = txtAppleIdConfigDirectory?.Text ?? "C:\\AppleIdConfigs";
+                string fileName = cmbAppleIdFile.SelectedItem.ToString() + ".txt";
+                string filePath = Path.Combine(appleIdConfigDirectory, fileName);
+                
+                if (File.Exists(filePath))
+                {
+                    int lineCount = File.ReadAllLines(filePath).Length;
+                    lblAppleIdAvailableCount.Text = $"可用AppleID数量: {lineCount}";
+                }
+                else
+                {
+                    lblAppleIdAvailableCount.Text = "可用AppleID数量: 0";
+                }
+            }
+            catch (Exception ex)
+            {
+                lblAppleIdAvailableCount.Text = "可用AppleID数量: 0";
             }
         }
 
@@ -1119,10 +1326,12 @@ namespace VMCloneApp.Forms
                 // 五码配置
                 cmbWumaFile.SelectedItem = config.WumaFile;
                 cmbDefaultWuma.SelectedItem = config.DefaultWuma;
+                txtWumaConfigDirectory.Text = config.WumaConfigDirectory;
                 
                 // AppleID配置
                 cmbAppleIdFile.SelectedItem = config.AppleIdFile;
                 cmbDefaultAppleId.SelectedItem = config.DefaultAppleId;
+                txtAppleIdConfigDirectory.Text = config.AppleIdConfigDirectory;
                 
                 // 客户端管理
                 txtApiUrl.Text = config.ApiUrl;
@@ -1157,10 +1366,12 @@ namespace VMCloneApp.Forms
                 // 五码配置
                 WumaFile = cmbWumaFile.SelectedItem?.ToString() ?? "14.1",
                 DefaultWuma = cmbDefaultWuma.SelectedItem?.ToString() ?? "14.1",
+                WumaConfigDirectory = txtWumaConfigDirectory.Text,
                 
                 // AppleID配置
                 AppleIdFile = cmbAppleIdFile.SelectedItem?.ToString() ?? "2026id",
                 DefaultAppleId = cmbDefaultAppleId.SelectedItem?.ToString() ?? "2026id",
+                AppleIdConfigDirectory = txtAppleIdConfigDirectory.Text,
                 
                 // 客户端管理
                 ApiUrl = txtApiUrl.Text,
